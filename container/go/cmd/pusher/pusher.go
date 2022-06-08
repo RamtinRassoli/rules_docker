@@ -176,8 +176,11 @@ func push(dst string, img v1.Image) error {
 			log.Printf("Error checking if digest already exists %v. Still pushing", err)
 		}
 		if exists {
-			log.Print("Skipping push of unchanged digest")
-			return nil
+			log.Print("Skipping push of unchanged digest. Only adding the tag if applicable.")
+			_, ok := ref.(name.Tag)
+			if !ok {
+				return nil
+			}
 		}
 	}
 
@@ -202,6 +205,11 @@ func push(dst string, img v1.Image) error {
 		})
 
 		options = append(options, httpTransportOption)
+	}
+
+	if *skipUnchangedDigest {
+		tag, _ := ref.(name.Tag)
+		return remote.Tag(tag, img, options...)
 	}
 
 	if err := remote.Write(ref, img, options...); err != nil {
